@@ -1,3 +1,5 @@
 const examples = require("./examples");
+const xport = require("./export");
 
-module.exports.exmples = examples;
+module.exports.export = xport;
+module.exports.examples = examples;
