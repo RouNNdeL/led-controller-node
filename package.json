@@ -3,6 +3,6 @@
   "version": "0.0.1",
   "repository": "https://github.com/RouNNdeL/led-controller-node",
   "dependencies": {
-    
+    "serialport": "^6.0.4"
   }
 }
