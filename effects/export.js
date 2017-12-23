@@ -1,10 +1,10 @@
 const examples = require("./examples");
 
 function profileToBin(effect) {
-    const array = new Uint8Array(62*6);
+    const array = new Uint8Array(62 * 6);
 
     for(let i = 0; i < effect.devices.length; i++) {
-        let index = 62*i;
+        let index = 62 * i;
         const device = effect.devices[i];
 
         array[index++] = device.effect;
@@ -68,14 +68,34 @@ function globalsToBin(globals) {
     array[index++] = globals.fan_count;
     array[index++] = globals.auto_increment;
 
-    for(let i = 0; i < 3; i++)
-    {
+    for(let i = 0; i < 3; i++) {
         array[index++] = globals.fan_config[i];
     }
 
     return array;
 }
 
+function binToGlobals(buffer) {
+    let index = 0;
+    let globals = {};
+
+    globals.brightness = buffer[index++];
+    globals.profile_count = buffer[index++];
+    globals.current_profile = buffer[index++];
+    globals.leds_enabled = buffer[index++];
+    globals.fan_count = buffer[index++];
+    globals.auto_increment = buffer[index++];
+    globals.fan_config = [];
+
+    for(let i = 0; i < 3; i++) {
+        globals.fan_config[i] = buffer[index++];
+    }
+
+    return globals;
+}
+
 module.exports.profileToBin = profileToBin;
 module.exports.deviceToBin = deviceToBin;
 module.exports.globalsToBin = globalsToBin;
+
+module.exports.binToGlobals = binToGlobals;

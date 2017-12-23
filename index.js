@@ -1,43 +1,115 @@
 const effects = require("./effects");
-const serial = require("./serial_interface");
+const port = require("./serial_interface");
 const log4js = require("log4js");
 
 log4js.configure({
     appenders: {
-        out: {type: 'stdout'}
+        out: {type: "stdout"},
+        file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ['out'], level: 'debug'}
+        default: {appenders: ["out", "file"], level: "debug"}
     }
 });
 const logger = log4js.getLogger();
 
-let next_data;
-let receive_globals = false;
+let callback_stack = [];
 
-serial.registerReader(function (d) {
-    if (d.length === 0) {
-        switch (d[0]) {
-            case serial.codes.UART_READY: {
-                //Device has been initialized and is ready to accept instructions
-                logger.info("LED Controller has been initialized and is ready to accept instructions");
+port.on("data", buffer => {
+    if(callback_stack.length > 0) {
+        const callback = callback_stack.pop();
+        callback(null, buffer);
+    } else {
+        defaultCallback(buffer)
+    }
+});
+
+function sendToPort(data, callback) {
+    if(callback === undefined) {
+        port.write(data);
+    } else {
+        port.write(data, function(err) {
+            if(err) {
+                callback_stack.splice(callback_stack.indexOf(callback), 1);
+                callback(err);
+            }
+        });
+        callback_stack.unshift(callback);
+    }
+}
+
+function defaultCallback(buffer) {
+    if(buffer.length === 1) {
+        switch(buffer[0]) {
+            case port.codes.UART_READY: {
+                logger.info("Device initialized, ready to accept instructions");
                 break;
             }
-            case serial.codes.READY_TO_RECEIVE: {
-                serial.sendData(next_data);
-                break;
-            }
-            case serial.codes.GLOBALS_UPDATED: {
-                serial.sendData([serial.codes.SEND_GLOBALS]);
-                receive_globals = true;
+            case port.codes.GLOBALS_UPDATED: {
+                sendToPort([port.codes.SEND_GLOBALS], newGlobals);
                 break;
             }
             default: {
-                logger.error("Invalid response: ", d[0]);
+                logger.warn("Unknown code: ", buffer[0].toString("hex"));
             }
-
         }
-    } else if(receive_globals) {
-        //Send the updated globals to the server
+    } else {
+        logger.warn("Unhandled data: ", buffer);
     }
-});
+}
+
+function newGlobals(err, buffer) {
+    if(err === null) {
+        logger.info("Got new globals");
+        logger.debug(effects.export.binToGlobals(buffer));
+    } else {
+        logger.error(err);
+    }
+}
+
+function sendGlobals(globals, callback) {
+    sendToPort([port.codes.SAVE_GLOBALS], (err, data) => {
+        if(err !== null) {
+            logger.error(err);
+        } else if(data.length > 1 || data[0] !== port.codes.READY_TO_RECEIVE) {
+            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
+        } else {
+            sendToPort(effects.export.globalsToBin(globals), callback);
+        }
+    })
+}
+
+function sendProfile(n, profile, callback) {
+    let devices = profile.devices.length;
+    let current = 0;
+
+    function sendSingle(err, data, override) {
+        sendToPort([port.codes.SAVE_PROFILE], (err, data) => {
+            if(err !== null && !override) {
+                logger.error(err);
+            } else if((data.length > 1 || data[0] !== port.codes.READY_TO_RECEIVE) && !override) {
+                logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
+            } else {
+                if(current < devices) {
+                    sendToPort(effects.export.deviceToBin(n, current, profile.devices[current]), sendSingle);
+                    logger.debug("Sending "+current+ " device to "+n+" profile");
+                    current++;
+                } else {
+                    callback();
+                }
+            }
+        });
+    }
+
+    sendSingle(null, null, true);
+}
+
+function didReceive(err, data) {
+    if(err !== null) {
+        logger.error(err);
+    } else if(data.length > 1 || data[0] !== port.codes.RECEIVE_SUCCESS) {
+        logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
+    } else {
+        logger.info("Device successfully received the data");
+    }
+}

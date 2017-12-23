@@ -1,4 +1,4 @@
-const interface = require("./interface");
+const interface = require("./port");
 
 const codes = {
     SAVE_GLOBALS: 0x10,
