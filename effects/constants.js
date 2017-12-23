@@ -9,7 +9,7 @@ const effects = {
     PIECES: 0x0C
 };
 
-/* Regex to update these from C #define /([A-Z_\d]*) (.*)/ replace: '$1 : $2,' */
+/* Regex to update these from C /#define ([A-Z_\d]*) (.*)/ replace: '$1 : $2,' */
 const args = {
     ARG_BIT_PACK: 0,
 
