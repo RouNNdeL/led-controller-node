@@ -4,6 +4,8 @@
   "repository": "https://github.com/RouNNdeL/led-controller-node",
   "dependencies": {
     "log4js": "^2.4.1",
-    "serialport": "^6.0.4"
+    "openport": "0.0.4",
+    "serialport": "^6.0.4",
+    "request": "latest"
   }
 }

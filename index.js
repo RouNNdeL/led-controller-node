@@ -1,6 +1,9 @@
 const effects = require("./effects");
 const port = require("./serial_interface");
+const codes = port.codes;
 const log4js = require("log4js");
+const server = require("./network").receiver;
+const register = require("./network").register;
 
 log4js.configure({
     appenders: {
@@ -12,6 +15,15 @@ log4js.configure({
     }
 });
 const logger = log4js.getLogger();
+
+server.listen(() => {
+    register(server.address().port, function(err, resp, content) {
+        if(err !== null){
+            logger.error(err);
+        }
+    });
+});
+server.data(onSocketData);
 
 let callback_stack = [];
 
@@ -41,12 +53,12 @@ function sendToPort(data, callback) {
 function defaultCallback(buffer) {
     if(buffer.length === 1) {
         switch(buffer[0]) {
-            case port.codes.UART_READY: {
+            case codes.UART_READY: {
                 logger.info("Device initialized, ready to accept instructions");
                 break;
             }
-            case port.codes.GLOBALS_UPDATED: {
-                sendToPort([port.codes.SEND_GLOBALS], newGlobals);
+            case codes.GLOBALS_UPDATED: {
+                sendToPort([codes.SEND_GLOBALS], newGlobals);
                 break;
             }
             default: {
@@ -68,10 +80,10 @@ function newGlobals(err, buffer) {
 }
 
 function sendGlobals(globals, callback) {
-    sendToPort([port.codes.SAVE_GLOBALS], (err, data) => {
+    sendToPort([codes.SAVE_GLOBALS], (err, data) => {
         if(err !== null) {
             logger.error(err);
-        } else if(data.length > 1 || data[0] !== port.codes.READY_TO_RECEIVE) {
+        } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
             logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
         } else {
             sendToPort(effects.export.globalsToBin(globals), callback);
@@ -84,10 +96,10 @@ function sendProfile(n, profile, callback) {
     let current = 0;
 
     function sendSingle(err, data, override) {
-        sendToPort([port.codes.SAVE_PROFILE], (err, data) => {
+        sendToPort([codes.SAVE_PROFILE], (err, data) => {
             if(err !== null && !override) {
                 logger.error(err);
-            } else if((data.length > 1 || data[0] !== port.codes.READY_TO_RECEIVE) && !override) {
+            } else if((data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) && !override) {
                 logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
             } else {
                 if(current < devices) {
@@ -107,9 +119,13 @@ function sendProfile(n, profile, callback) {
 function didReceive(err, data) {
     if(err !== null) {
         logger.error(err);
-    } else if(data.length > 1 || data[0] !== port.codes.RECEIVE_SUCCESS) {
+    } else if(data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) {
         logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
     } else {
         logger.info("Device successfully received the data");
     }
+}
+
+function onSocketData(buffer) {
+    logger.debug(buffer.toString("utf-8"));
 }
