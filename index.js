@@ -18,7 +18,7 @@ const logger = log4js.getLogger();
 
 server.listen(() => {
     register(server.address().port, function(err, resp, content) {
-        if(err !== null){
+        if(err !== null) {
             logger.error(err);
         }
     });
@@ -62,7 +62,7 @@ function defaultCallback(buffer) {
                 break;
             }
             default: {
-                logger.warn("Unknown code: ", buffer[0].toString("hex"));
+                logger.warn("Unknown code: ", buffer[0].toString(16));
             }
         }
     } else {
@@ -80,6 +80,9 @@ function newGlobals(err, buffer) {
 }
 
 function sendGlobals(globals, callback) {
+    if(callback === undefined) {
+        callback = didReceive;
+    }
     sendToPort([codes.SAVE_GLOBALS], (err, data) => {
         if(err !== null) {
             logger.error(err);
@@ -91,7 +94,25 @@ function sendGlobals(globals, callback) {
     })
 }
 
+function sendTempDevice(n, device, callback) {
+    if(callback === undefined) {
+        callback = didReceive;
+    }
+    sendToPort([codes.TEMP_DEVICE], (err, data) => {
+        if(err !== null) {
+            logger.error(err);
+        } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
+            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
+        } else {
+            sendToPort(effects.export.deviceToBin(0, n, device), callback);
+        }
+    })
+}
+
 function sendProfile(n, profile, callback) {
+    if(callback === undefined) {
+        callback = didReceive;
+    }
     let devices = profile.devices.length;
     let current = 0;
 
@@ -104,7 +125,7 @@ function sendProfile(n, profile, callback) {
             } else {
                 if(current < devices) {
                     sendToPort(effects.export.deviceToBin(n, current, profile.devices[current]), sendSingle);
-                    logger.debug("Sending "+current+ " device to "+n+" profile");
+                    logger.debug("Sending " + current + " device to " + n + " profile");
                     current++;
                 } else {
                     callback();

@@ -69,7 +69,7 @@ const globals = {
     current_profile: 0,
     leds_enabled: 1,
     fan_count: 1,
-    auto_increment: 80,
+    auto_increment: 0,
     fan_config: [2, 0, 0]
 };
 
