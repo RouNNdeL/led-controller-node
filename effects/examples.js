@@ -7,7 +7,7 @@ let single_breathe = {
     color_cycles: 1,
     times: [0, 16, 0, 16, 0, 0],
     args: [0, 0, 255],
-    colors: [0xFF0000, 0x00FF00, 0x0000FF]
+    colors: ["#ff0000", "#00ff00", "#0000ff"]
 };
 
 let rainbow_simple = {
@@ -43,29 +43,79 @@ const effects_examples = {
             color_count: 2,
             color_cycles: 1,
             times: [24, 12, 0, 12, 0, 12],
-            args: [0,0,255],
-            colors: [0x0000ff, 0xff00ff]
-        },{
+            args: [0, 0, 255],
+            colors: ["#0000ff", "#ff00ff"]
+        }, {
             effect: effects.BREATHE,
             color_count: 2,
             color_cycles: 2,
             times: [0, 12, 0, 12, 0, 0],
-            args: [0,0,255],
-            colors: [0xff0000, 0x0000ff]
-        },{
+            args: [0, 0, 255],
+            colors: ["#ff0000", "#0000ff"]
+        }, {
             effect: effects.FILL,
             color_count: 2,
             color_cycles: 1,
             times: [24, 12, 0, 12, 0, 24],
             args: [args.SMOOTH, 1, 1, 0, 0],
-            colors: [0x960096, 0x00cc40]
+            colors: ["#960096", "#00cc40"]
+        }]
+    },
+    "police": {
+        devices: [{
+            effect: effects.FADE,
+            color_count: 2,
+            color_cycles: 1,
+            times: [0, 0, 20, 4, 0, 0],
+            args: [0],
+            colors: ["#0000ff", "#ff0000"]
+        }, {
+            effect: effects.FADE,
+            color_count: 2,
+            color_cycles: 1,
+            times: [0, 0, 20, 4, 0, 0],
+            args: [0],
+            colors: ["#ff0000", "#0000ff"]
+        }, {
+            effect: effects.ROTATING,
+            color_count: 2,
+            color_cycles: 1,
+            times: [0, 0, 20, 4, 24],
+            args: [args.SMOOTH | args.DIRECTION, 1, 4, 2],
+            colors: ["#ff0000", "#0000ff", "#0000ff", "#ff0000"]
+        }]
+    },
+    "test": {
+        devices: [{
+            effect: effects.BREATHE,
+            color_count: 6,
+            color_cycles: 1,
+            times: [0, 0, 0, 4, 0, 12],
+            args: [0, 0, 255],
+            colors: ["#ff0000", "#ff00ff", "#0000ff", "#00ffff", "#00ff00", "#ffff00"],
+            brightness: 0
+        }, {
+            effect: effects.BREATHE,
+            color_count: 6,
+            color_cycles: 1,
+            times: [0, 0, 0, 4, 0, 0],
+            args: [0, 0, 255],
+            colors: ["#ff0000", "#ff00ff", "#0000ff", "#00ffff", "#00ff00", "#ffff00"],
+            brightness: 0
+        }, {
+            effect: effects.PIECES,
+            color_count: 6,
+            color_cycles: 1,
+            times: [0, 0, 8, 4, 4],
+            args: [args.SMOOTH, 2, 2],
+            colors: ["#ff0000", "#00ffff", "#00ff00", "#ffffff", "#0000ff", "#ffff00"]
         }]
     }
 };
 
 const globals = {
     brightness: 255,
-    profile_count: 3,
+    profile_count: 5,
     current_profile: 0,
     leds_enabled: 1,
     fan_count: 1,

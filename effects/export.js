@@ -33,6 +33,8 @@ function deviceToBin(profile_n, device_n, device) {
     const array = new Uint8Array(64);
     let index = 0;
 
+    let brightness = device.brightness === undefined ? 1 : device.brightness/100;
+
     array[index++] = profile_n;
     array[index++] = device_n;
 
@@ -48,10 +50,14 @@ function deviceToBin(profile_n, device_n, device) {
     }
 
     for(let j = 0; j < 16; j++) {
-        let color = device.colors[j];
-        array[index++] = (color >> 16);
-        array[index++] = (color >> 8);
-        array[index++] = color;
+        let color;
+        if(device.colors[j] === undefined)
+            color = 0;
+        else
+            color = parseInt(device.colors[j].replace(/#/, "0x"));
+        array[index++] = (color >> 16) * brightness;
+        array[index++] = (color >> 8) * brightness;
+        array[index++] = color * brightness;
     }
 
     return array;

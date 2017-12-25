@@ -17,6 +17,7 @@ const args = {
     SMOOTH: (1 << 1),
 
     FILL_FADE_RETURN: (1 << 2),
+    FADE_SMOOTH: (1 << 3),
 
     RAINBOW_MODE: (1 << 2),
     RAINBOW_SIMPLE: (1 << 3),
