@@ -3,3 +3,4 @@ node_modules
 package-lock.json
 app.log
 secure.json
+demo.aac

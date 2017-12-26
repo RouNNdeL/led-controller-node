@@ -4,6 +4,7 @@ const codes = port.codes;
 const log4js = require("log4js");
 const server = require("./network").receiver;
 const register = require("./network").register;
+const player = require('play-sound')(opts = {});
 
 log4js.configure({
     appenders: {
@@ -149,4 +150,14 @@ function didReceive(err, data) {
 
 function onSocketData(buffer) {
     logger.debug(buffer.toString("utf-8"));
+}
+
+async function playDemo() {
+    sendToPort([codes.START_DEMO], didReceive);
+    let audio = player.play("demo.aac", {mplayer: ['-ss', 75 ]}, function(err) {
+        if(err) logger.error(err);
+    });
+    await new Promise(resolve => setTimeout(resolve, 15500));
+    audio.kill();
+    process.abort();
 }

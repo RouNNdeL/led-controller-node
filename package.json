@@ -5,7 +5,8 @@
   "dependencies": {
     "log4js": "^2.4.1",
     "openport": "0.0.4",
-    "serialport": "^6.0.4",
-    "request": "latest"
+    "play-sound": "^1.1.2",
+    "request": "latest",
+    "serialport": "^6.0.4"
   }
 }

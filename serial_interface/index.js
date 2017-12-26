@@ -14,6 +14,8 @@ const codes = {
 
     GLOBALS_UPDATED: 0xB0,
 
+    START_DEMO: 0xD0,
+
     UNRECOGNIZED_COMMAND: 0xE0,
     BUFFER_OVERFLOW: 0xE1
 };
