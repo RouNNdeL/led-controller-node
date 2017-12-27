@@ -15,7 +15,7 @@ let rainbow_simple = {
     color_count: 0,
     color_cycles: 0,
     times: [0, 0, 0, 80, 0, 0],
-    args: [0, 160],
+    args: [0, 255],
     colors: []
 };
 
@@ -24,7 +24,7 @@ let rainbow_digital = {
     color_count: 0,
     color_cycles: 0,
     times: [0, 0, 0, 16, 0, 0],
-    args: [args.RAINBOW_MODE, 100, 1],
+    args: [args.RAINBOW_MODE, 255, 1],
     colors: []
 };
 

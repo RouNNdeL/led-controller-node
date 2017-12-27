@@ -6,6 +6,9 @@ const server = require("./network").receiver;
 const register = require("./network").register;
 const player = require('play-sound')(opts = {});
 
+let audio;
+let demo_playing;
+
 log4js.configure({
     appenders: {
         out: {type: "stdout"},
@@ -56,10 +59,21 @@ function defaultCallback(buffer) {
         switch(buffer[0]) {
             case codes.UART_READY: {
                 logger.info("Device initialized, ready to accept instructions");
+                //playDemo(codes.START_DEMO_EFFECTS);
+                sendProfile(1, effects.examples.effects["rainbow"]);
                 break;
             }
             case codes.GLOBALS_UPDATED: {
                 sendToPort([codes.SEND_GLOBALS], newGlobals);
+                break;
+            }
+            case codes.END_DEMO: {
+                logger.info("Demo finished playing");
+                if(audio !== undefined && audio !== null && typeof audio.kill === "function")
+                {
+                    audio.kill();
+                }
+                demo_playing = false;
                 break;
             }
             default: {
@@ -149,15 +163,33 @@ function didReceive(err, data) {
 }
 
 function onSocketData(buffer) {
-    logger.debug(buffer.toString("utf-8"));
+    try {
+        logger.debug(buffer.toString("utf-8"));
+        const json = JSON.parse(buffer.toString("utf-8"));
+        handleJson(json);
+    } catch(e) {
+        logger.error(e);
+    }
 }
 
-async function playDemo() {
-    sendToPort([codes.START_DEMO], didReceive);
-    let audio = player.play("demo.aac", {mplayer: ['-ss', 75 ]}, function(err) {
-        if(err) logger.error(err);
-    });
-    await new Promise(resolve => setTimeout(resolve, 15500));
-    audio.kill();
-    process.abort();
+function handleJson(json) {
+    if(json.type === "dialogflow") {
+        switch(json.data.result.action) {
+            case "start-demo": {
+                playDemo(codes.START_DEMO_MUSIC);
+            }
+        }
+    }
+}
+
+async function playDemo(demo) {
+    if(demo_playing) return;
+    logger.info("Starting demo:",demo);
+    sendToPort([demo], didReceive);
+    demo_playing = true;
+    if(demo === codes.START_DEMO_MUSIC) {
+        audio = player.play("demo.aac", {mplayer: ['-ss', 75]}, function(err) {
+            if(err) logger.error(err);
+        });
+    }
 }
