@@ -8,6 +8,7 @@ const player = require('play-sound')(opts = {});
 
 let audio;
 let demo_playing;
+let sending = false;
 
 log4js.configure({
     appenders: {
@@ -60,7 +61,7 @@ function defaultCallback(buffer) {
             case codes.UART_READY: {
                 logger.info("Device initialized, ready to accept instructions");
                 //playDemo(codes.START_DEMO_EFFECTS);
-                sendProfile(1, effects.examples.effects["rainbow"]);
+                //sendProfile(1, effects.examples.effects["rainbow"]);
                 break;
             }
             case codes.GLOBALS_UPDATED: {
@@ -69,8 +70,7 @@ function defaultCallback(buffer) {
             }
             case codes.END_DEMO: {
                 logger.info("Demo finished playing");
-                if(audio !== undefined && audio !== null && typeof audio.kill === "function")
-                {
+                if(audio !== undefined && audio !== null && typeof audio.kill === "function") {
                     audio.kill();
                 }
                 demo_playing = false;
@@ -95,6 +95,11 @@ function newGlobals(err, buffer) {
 }
 
 function sendGlobals(globals, callback) {
+    if(sending) {
+        logger.warn("Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
     if(callback === undefined) {
         callback = didReceive;
     }
@@ -110,6 +115,11 @@ function sendGlobals(globals, callback) {
 }
 
 function sendTempDevice(n, device, callback) {
+    if(sending) {
+        logger.warn("Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
     if(callback === undefined) {
         callback = didReceive;
     }
@@ -125,6 +135,11 @@ function sendTempDevice(n, device, callback) {
 }
 
 function sendProfile(n, profile, callback) {
+    if(sending) {
+        logger.warn("Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
     if(callback === undefined) {
         callback = didReceive;
     }
@@ -158,6 +173,7 @@ function didReceive(err, data) {
     } else if(data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) {
         logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
     } else {
+        sending = false;
         logger.info("Device successfully received the data");
     }
 }
@@ -180,11 +196,14 @@ function handleJson(json) {
             }
         }
     }
+    else if(json.type === "globals_update") {
+        sendGlobals(json.data);
+    }
 }
 
 async function playDemo(demo) {
     if(demo_playing) return;
-    logger.info("Starting demo:",demo);
+    logger.info("Starting demo:", demo);
     sendToPort([demo], didReceive);
     demo_playing = true;
     if(demo === codes.START_DEMO_MUSIC) {
