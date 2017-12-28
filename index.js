@@ -46,7 +46,7 @@ function sendToPort(data, callback) {
         port.write(data);
     } else {
         port.write(data, function(err) {
-            if(err) {
+            if(err !== null) {
                 callback_stack.splice(callback_stack.indexOf(callback), 1);
                 callback(err);
             }
@@ -61,7 +61,7 @@ function defaultCallback(buffer) {
             case codes.UART_READY: {
                 logger.info("Device initialized, ready to accept instructions");
                 //playDemo(codes.START_DEMO_EFFECTS);
-                //sendProfile(4, effects.examples.effects["test"]);
+                sendProfile(1, effects.examples.effects["rainbow"]);
                 //sendGlobals(effects.examples.globals);
                 break;
             }
@@ -151,17 +151,14 @@ function sendProfile(n, profile, callback) {
     function sendSingle(err, data, override) {
         sendToPort([codes.SAVE_PROFILE], (err, data) => {
             if(err !== null && !override) {
-                logger.error(err);
+                logger.error("sendSingle:", err);
             } else if((data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) && !override) {
                 logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
             } else {
-                if(current < devices) {
-                    sendToPort(effects.export.deviceToBin(n, current, profile.devices[current]), sendSingle);
-                    logger.trace("Sending " + current + " device to " + n + " profile");
-                    current++;
-                } else {
-                    callback();
-                }
+                let c = current +1 < devices ? sendSingle : callback;
+                sendToPort(effects.export.deviceToBin(n, current, profile.devices[current]), c);
+                logger.trace("Sending " + current + " device to " + n + " profile");
+                current++;
             }
         });
     }
@@ -171,7 +168,7 @@ function sendProfile(n, profile, callback) {
 
 function didReceive(err, data) {
     if(err !== null) {
-        logger.error(err);
+        logger.error("didReceive:", err);
     } else if(data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) {
         logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
     } else {

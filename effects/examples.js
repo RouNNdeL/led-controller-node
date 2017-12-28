@@ -56,7 +56,7 @@ const effects_examples = {
             effect: effects.FILL,
             color_count: 2,
             color_cycles: 1,
-            times: [24, 34, 0, 24, 0, 24],
+            times: [48, 24, 0, 24, 0, 48],
             args: [args.SMOOTH, 1, 1, 0, 0],
             colors: ["#960096", "#00cc40"]
         }]
@@ -92,7 +92,7 @@ const effects_examples = {
             color_cycles: 1,
             times: [0, 0, 16, 0, 0, 0],
             args: [0, 0, 255],
-            colors: ["#0000ff", "#0000ff", "#00ff00", "#ff00ff", "#00ffff", "#ffff00"],
+            colors: ["#ffffff", "#0000ff", "#00ff00", "#ff00ff", "#00ffff", "#ffff00"],
             brightness: 75
         }, {
             effect: effects.BREATHE,
