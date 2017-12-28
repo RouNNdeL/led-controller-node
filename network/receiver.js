@@ -8,7 +8,7 @@ const listeners = [];
  * @type Server
  */
 const server = net.createServer(/** @type Socket*/socket => {
-    logger.debug("Client connected", socket.address());
+    logger.trace("Client connected");
     socket.on("data", buffer => {
         for(let i = 0; i < listeners.length; i++) {
             listeners[i](buffer);

@@ -61,7 +61,8 @@ function defaultCallback(buffer) {
             case codes.UART_READY: {
                 logger.info("Device initialized, ready to accept instructions");
                 //playDemo(codes.START_DEMO_EFFECTS);
-                //sendProfile(1, effects.examples.effects["rainbow"]);
+                //sendProfile(4, effects.examples.effects["test"]);
+                //sendGlobals(effects.examples.globals);
                 break;
             }
             case codes.GLOBALS_UPDATED: {
@@ -88,7 +89,7 @@ function defaultCallback(buffer) {
 function newGlobals(err, buffer) {
     if(err === null) {
         logger.info("Got new globals");
-        logger.debug(effects.export.binToGlobals(buffer));
+        logger.trace(effects.export.binToGlobals(buffer));
     } else {
         logger.error(err);
     }
@@ -96,7 +97,7 @@ function newGlobals(err, buffer) {
 
 function sendGlobals(globals, callback) {
     if(sending) {
-        logger.warn("Device is not done processing or receiving the data");
+        logger.warn("sendGlobals: Device is not done processing or receiving the data");
         return;
     }
     sending = true;
@@ -109,14 +110,15 @@ function sendGlobals(globals, callback) {
         } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
             logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
         } else {
-            sendToPort(effects.export.globalsToBin(globals), callback);
+            let bin = effects.export.globalsToBin(globals);
+            sendToPort(bin, callback);
         }
     })
 }
 
 function sendTempDevice(n, device, callback) {
     if(sending) {
-        logger.warn("Device is not done processing or receiving the data");
+        logger.warn("sendTempDevice: Device is not done processing or receiving the data");
         return;
     }
     sending = true;
@@ -136,7 +138,7 @@ function sendTempDevice(n, device, callback) {
 
 function sendProfile(n, profile, callback) {
     if(sending) {
-        logger.warn("Device is not done processing or receiving the data");
+        logger.warn("sendProfile: Device is not done processing or receiving the data");
         return;
     }
     sending = true;
@@ -155,7 +157,7 @@ function sendProfile(n, profile, callback) {
             } else {
                 if(current < devices) {
                     sendToPort(effects.export.deviceToBin(n, current, profile.devices[current]), sendSingle);
-                    logger.debug("Sending " + current + " device to " + n + " profile");
+                    logger.trace("Sending " + current + " device to " + n + " profile");
                     current++;
                 } else {
                     callback();
@@ -180,7 +182,7 @@ function didReceive(err, data) {
 
 function onSocketData(buffer) {
     try {
-        logger.debug(buffer.toString("utf-8"));
+        logger.trace(buffer.toString("utf-8"));
         const json = JSON.parse(buffer.toString("utf-8"));
         handleJson(json);
     } catch(e) {
@@ -202,7 +204,10 @@ function handleJson(json) {
 }
 
 async function playDemo(demo) {
-    if(demo_playing) return;
+    if(demo_playing) {
+        logger.warn("Demo already playing");
+        return;
+    }
     logger.info("Starting demo:", demo);
     sendToPort([demo], didReceive);
     demo_playing = true;
