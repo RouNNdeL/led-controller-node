@@ -16,7 +16,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "debug"}
+        default: {appenders: ["out", "file"], level: "trace"}
     }
 });
 const logger = log4js.getLogger();
@@ -46,7 +46,7 @@ function sendToPort(data, callback) {
         port.write(data);
     } else {
         port.write(data, function(err) {
-            if(err !== null) {
+            if(err) {
                 callback_stack.splice(callback_stack.indexOf(callback), 1);
                 callback(err);
             }
@@ -61,7 +61,7 @@ function defaultCallback(buffer) {
             case codes.UART_READY: {
                 logger.info("Device initialized, ready to accept instructions");
                 //playDemo(codes.START_DEMO_EFFECTS);
-                sendProfile(1, effects.examples.effects["rainbow"]);
+                //sendProfile(1, effects.examples.effects["rainbow"]);
                 //sendGlobals(effects.examples.globals);
                 break;
             }
@@ -137,6 +137,9 @@ function sendTempDevice(n, device, callback) {
 }
 
 function sendProfile(n, profile, callback) {
+    if(typeof profile.devices !== "object") {
+        logger.error("sendProfile: Invalid profile object");
+    }
     if(sending) {
         logger.warn("sendProfile: Device is not done processing or receiving the data");
         return;
@@ -148,14 +151,21 @@ function sendProfile(n, profile, callback) {
     let devices = profile.devices.length;
     let current = 0;
 
-    function sendSingle(err, data, override) {
+    function sendSingle(err, data, override = false) {
+        if(err !== null) {
+            logger.error("sendSingle:", err);
+        } else if((data === null || data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) && !override) {
+            logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
+        } else if(!override) {
+            logger.trace("Device successfully received the data");
+        }
         sendToPort([codes.SAVE_PROFILE], (err, data) => {
             if(err !== null && !override) {
                 logger.error("sendSingle:", err);
             } else if((data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) && !override) {
                 logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
             } else {
-                let c = current +1 < devices ? sendSingle : callback;
+                let c = current + 1 < devices ? sendSingle : callback;
                 sendToPort(effects.export.deviceToBin(n, current, profile.devices[current]), c);
                 logger.trace("Sending " + current + " device to " + n + " profile");
                 current++;
