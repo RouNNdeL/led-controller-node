@@ -54,7 +54,7 @@ function deviceToBin(profile_n, device_n, device) {
         if(device.colors[j] === undefined)
             color = 0;
         else
-            color = parseInt(device.colors[j].replace(/#/, "0x"));
+            color = parseInt(device.colors[j].replace(/(^|#)/, "0x"));
         array[index++] = (color >> 16) * brightness;
         array[index++] = (color >> 8) * brightness;
         array[index++] = color * brightness;

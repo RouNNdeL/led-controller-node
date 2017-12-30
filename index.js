@@ -189,7 +189,6 @@ function didReceive(err, data) {
 
 function onSocketData(buffer) {
     try {
-        logger.trace(buffer.toString("utf-8"));
         const json = JSON.parse(buffer.toString("utf-8"));
         handleJson(json);
     } catch(e) {
@@ -198,6 +197,7 @@ function onSocketData(buffer) {
 }
 
 function handleJson(json) {
+    logger.trace(json);
     if(json.type === "dialogflow") {
         switch(json.data.result.action) {
             case "start-demo": {
@@ -207,6 +207,9 @@ function handleJson(json) {
     }
     else if(json.type === "globals_update") {
         sendGlobals(json.data);
+    }
+    else if(json.type === "profile_update") {
+        sendProfile(json.options.n, {devices: json.data});
     }
 }
 
