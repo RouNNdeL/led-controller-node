@@ -70,7 +70,7 @@ function globalsToBin(globals) {
     array[index++] = globals.brightness;
     array[index++] = globals.profile_count;
     array[index++] = globals.current_profile;
-    array[index++] = globals.leds_enabled;
+    array[index++] = globals.leds_enabled ? 1 : 0;
     array[index++] = globals.fan_count;
     array[index++] = globals.auto_increment;
 
@@ -88,7 +88,7 @@ function binToGlobals(buffer) {
     globals.brightness = buffer[index++];
     globals.profile_count = buffer[index++];
     globals.current_profile = buffer[index++];
-    globals.leds_enabled = buffer[index++];
+    globals.leds_enabled = !!buffer[index++];
     globals.fan_count = buffer[index++];
     globals.auto_increment = buffer[index++];
     globals.fan_config = [];

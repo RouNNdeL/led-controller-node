@@ -3,7 +3,7 @@ const port = require("./serial_interface");
 const codes = port.codes;
 const log4js = require("log4js");
 const server = require("./network").receiver;
-const register = require("./network").register;
+const http = require("./network").http;
 const player = require('play-sound')(opts = {});
 
 let audio;
@@ -22,7 +22,7 @@ log4js.configure({
 const logger = log4js.getLogger();
 
 server.listen(() => {
-    register(server.address().port, function(err, resp, content) {
+    http.register(server.address().port, function(err, resp, content) {
         if(err !== null) {
             logger.error(err);
         }
@@ -89,7 +89,15 @@ function defaultCallback(buffer) {
 function newGlobals(err, buffer) {
     if(err === null) {
         logger.info("Got new globals");
-        logger.trace(effects.export.binToGlobals(buffer));
+        let globals = effects.export.binToGlobals(buffer);
+        http.sendGlobals({
+            current_profile: globals.current_profile,
+            enabled: globals.leds_enabled
+        }, (err, resp, content) => {
+            if(err !== null)  logger.error(err);
+            else logger.trace(content);
+        });
+        logger.trace(globals);
     } else {
         logger.error(err);
     }

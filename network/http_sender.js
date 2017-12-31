@@ -12,4 +12,14 @@ function register(port, callback) {
     }, callback);
 }
 
-module.exports = register;
+function sendGlobals(data, callback) {
+    data.notify = false;
+    request("http://led/api/save/global", {
+        method: "POST",
+        body: data,
+        json: true
+    }, callback);
+}
+
+module.exports.sendGlobals = sendGlobals;
+module.exports.register = register;

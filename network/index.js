@@ -1,5 +1,5 @@
 const receiver = require("./receiver");
-const register = require("./register");
+const http = require("./http_sender");
 
 module.exports.receiver = receiver;
-module.exports.register = register;
+module.exports.http = http;
