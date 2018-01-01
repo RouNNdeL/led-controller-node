@@ -16,7 +16,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "trace"}
+        default: {appenders: ["out", "file"], level: "warn"}
     }
 });
 const logger = log4js.getLogger();
@@ -94,7 +94,7 @@ function newGlobals(err, buffer) {
             current_profile: globals.current_profile,
             enabled: globals.leds_enabled
         }, (err, resp, content) => {
-            if(err !== null)  logger.error(err);
+            if(err !== null) logger.error(err);
             else logger.trace(content);
         });
         logger.trace(globals);
@@ -184,6 +184,18 @@ function sendProfile(n, profile, callback) {
     sendSingle(null, null, true);
 }
 
+function saveExplicit(callback) {
+    if(sending) {
+        logger.warn("sendTempDevice: Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
+    if(callback === undefined) {
+        callback = didReceive;
+    }
+    sendToPort([codes.SAVE_EXPLICIT], callback);
+}
+
 function didReceive(err, data) {
     if(err !== null) {
         logger.error("didReceive:", err);
@@ -218,6 +230,8 @@ function handleJson(json) {
     }
     else if(json.type === "profile_update") {
         sendProfile(json.options.n, {devices: json.data});
+    } else if(json.type === "save_explicit") {
+        saveExplicit();
     }
 }
 
