@@ -16,7 +16,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "warn"}
+        default: {appenders: ["out", "file"], level: "trace"}
     }
 });
 const logger = log4js.getLogger();
@@ -31,27 +31,54 @@ server.listen(() => {
 server.data(onSocketData);
 
 let callback_stack = [];
+let length_stack = [];
+let buffer = new Buffer([]);
 
-port.on("data", buffer => {
+function handleBuffer(b) {
     if(callback_stack.length > 0) {
-        const callback = callback_stack.pop();
-        callback(null, buffer);
+        buffer = Buffer.concat([buffer, b]);
+        let expected_length = length_stack[length_stack.length - 1];
+        if(buffer.length === expected_length) {
+            length_stack.pop();
+            const callback = callback_stack.pop();
+            callback(null, buffer);
+            buffer = new Buffer([]);
+        } else if(buffer.length > expected_length) {
+            length_stack.pop();
+            const callback = callback_stack.pop();
+            callback(null, buffer.slice(0, expected_length));
+            handleBuffer(buffer.slice(expected_length));
+            buffer = new Buffer([]);
+        } else {
+            logger.debug("Buffer not long enough, expected: " + expected_length + ", got: " + buffer.length);
+        }
     } else {
-        defaultCallback(buffer)
+        defaultCallback(b)
     }
-});
+}
 
-function sendToPort(data, callback) {
+port.on("data", handleBuffer);
+
+function sendToPort(data, length, callback) {
+    if(typeof length === "function") {
+        callback = length;
+        length = 1;
+    }
+    if(typeof length === "undefined") {
+        length = 1;
+    }
     if(callback === undefined) {
         port.write(data);
     } else {
         port.write(data, function(err) {
             if(err) {
                 callback_stack.splice(callback_stack.indexOf(callback), 1);
+                length_stack.splice(length_stack.indexOf(length), 1);
                 callback(err);
             }
         });
         callback_stack.unshift(callback);
+        length_stack.unshift(length);
     }
 }
 
@@ -62,11 +89,11 @@ function defaultCallback(buffer) {
                 logger.info("Device initialized, ready to accept instructions");
                 //playDemo(codes.START_DEMO_EFFECTS);
                 //sendProfile(1, effects.examples.effects["rainbow"]);
-                //sendGlobals(effects.examples.globals);
+                sendGlobals(effects.examples.globals);
                 break;
             }
             case codes.GLOBALS_UPDATED: {
-                sendToPort([codes.SEND_GLOBALS], newGlobals);
+                sendToPort([codes.SEND_GLOBALS], 17, newGlobals);
                 break;
             }
             case codes.END_DEMO: {

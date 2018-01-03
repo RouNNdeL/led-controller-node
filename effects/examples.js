@@ -66,7 +66,7 @@ const effects_examples = {
             effect: effects.FADE,
             color_count: 2,
             color_cycles: 1,
-                    times: [0, 0, 40, 8, 0, 0],
+            times: [0, 0, 40, 8, 0, 0],
             args: [0],
             colors: ["#0000ff", "#ff0000"]
         }, {
@@ -138,12 +138,13 @@ const effects_examples = {
 
 const globals = {
     brightness: 255,
-    profile_count: 5,
+    profile_count: 4,
     current_profile: 0,
     leds_enabled: 1,
     fan_count: 1,
     auto_increment: 0,
-    fan_config: [2, 0, 0]
+    fan_config: [2, 0, 0],
+    profile_order: [0, 1, 2, 3, 4, 5, 6, 7]
 };
 
 module.exports.effects = effects_examples;

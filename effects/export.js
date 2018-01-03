@@ -33,7 +33,7 @@ function deviceToBin(profile_n, device_n, device) {
     const array = new Uint8Array(64);
     let index = 0;
 
-    let brightness = device.brightness === undefined ? 1 : device.brightness/100;
+    let brightness = device.brightness === undefined ? 1 : device.brightness / 100;
 
     array[index++] = profile_n;
     array[index++] = device_n;
@@ -64,7 +64,7 @@ function deviceToBin(profile_n, device_n, device) {
 }
 
 function globalsToBin(globals) {
-    const array = new Uint8Array(9);
+    const array = new Uint8Array(17);
     let index = 0;
 
     array[index++] = globals.brightness;
@@ -76,6 +76,9 @@ function globalsToBin(globals) {
 
     for(let i = 0; i < 3; i++) {
         array[index++] = globals.fan_config[i];
+    }
+    for(let i = 0; i < 8; i++) {
+        array[index++] = globals.profile_order[i];
     }
 
     return array;
@@ -92,9 +95,13 @@ function binToGlobals(buffer) {
     globals.fan_count = buffer[index++];
     globals.auto_increment = buffer[index++];
     globals.fan_config = [];
+    globals.profile_order = [];
 
     for(let i = 0; i < 3; i++) {
         globals.fan_config[i] = buffer[index++];
+    }
+    for(let i = 0; i < 8; i++) {
+        globals.profile_order[i] = buffer[index++];
     }
 
     return globals;
