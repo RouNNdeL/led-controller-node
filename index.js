@@ -1,6 +1,6 @@
 const effects = require("./effects");
-const port = require("./serial_interface");
-const codes = port.codes;
+const serial = require("./serial_interface");
+const codes = serial.codes;
 const log4js = require("log4js");
 const server = require("./network").receiver;
 const http = require("./network").http;
@@ -17,10 +17,17 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "info"}
+        default: {appenders: ["out", "file"], level: "trace"}
     }
 });
 const logger = log4js.getLogger();
+
+const port = serial.begin(function(e) {
+    if(e !== null) {
+        logger.fatal(e);
+        process.exit(0xE0);
+    }
+});
 
 const REGISTER_MAX_RETRIES = 24;
 server.listen(() => {
