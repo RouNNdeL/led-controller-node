@@ -9,6 +9,7 @@ const player = require('play-sound')(opts = {});
 let audio;
 let demo_playing;
 let sending = false;
+let action_buffer = [];
 
 log4js.configure({
     appenders: {
@@ -89,7 +90,7 @@ function defaultCallback(buffer) {
                 logger.info("Device initialized, ready to accept instructions");
                 //playDemo(codes.START_DEMO_EFFECTS);
                 //sendProfile(1, effects.examples.effects["rainbow"]);
-                sendGlobals(effects.examples.globals);
+                //sendGlobals(effects.examples.globals);
                 break;
             }
             case codes.GLOBALS_UPDATED: {
@@ -230,7 +231,10 @@ function didReceive(err, data) {
         logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
     } else {
         sending = false;
-        logger.info("Device successfully received the data");
+        if(action_buffer.length > 0) {
+            handleJson(action_buffer.pop());
+        }
+        logger.trace("Device successfully received the data");
     }
 }
 
@@ -245,20 +249,24 @@ function onSocketData(buffer) {
 
 function handleJson(json) {
     logger.trace(json);
-    if(json.type === "dialogflow") {
-        switch(json.data.result.action) {
-            case "start-demo": {
-                playDemo(codes.START_DEMO_MUSIC);
+    if(sending) {
+        action_buffer.unshift(json);
+    } else {
+        if(json.type === "dialogflow") {
+            switch(json.data.result.action) {
+                case "start-demo": {
+                    playDemo(codes.START_DEMO_MUSIC);
+                }
             }
         }
-    }
-    else if(json.type === "globals_update") {
-        sendGlobals(json.data);
-    }
-    else if(json.type === "profile_update") {
-        sendProfile(json.options.n, {devices: json.data});
-    } else if(json.type === "save_explicit") {
-        saveExplicit();
+        else if(json.type === "globals_update") {
+            sendGlobals(json.data);
+        }
+        else if(json.type === "profile_update") {
+            sendProfile(json.options.n, {devices: json.data});
+        } else if(json.type === "save_explicit") {
+            saveExplicit();
+        }
     }
 }
 
