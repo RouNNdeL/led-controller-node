@@ -8,7 +8,8 @@ function register(port, callback) {
         qs: {
             token: token,
             port: port.toString()
-        }
+        },
+        timeout: 2500
     }, callback);
 }
 

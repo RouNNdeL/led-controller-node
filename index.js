@@ -17,17 +17,28 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "trace"}
+        default: {appenders: ["out", "file"], level: "info"}
     }
 });
 const logger = log4js.getLogger();
 
+const REGISTER_MAX_RETRIES = 24;
 server.listen(() => {
-    http.register(server.address().port, function(err, resp, content) {
-        if(err !== null) {
-            logger.error(err);
-        }
-    });
+    let tries = 0;
+    function attemptRegister() {
+        tries++;
+        http.register(server.address().port, function(err, resp, content) {
+            if(err !== null) {
+                logger.error("Failed to register, attempt", tries);
+                logger.warn(err);
+                if(tries < REGISTER_MAX_RETRIES)
+                    attemptRegister();
+            } else {
+                logger.info("Successfully register the TCP server");
+            }
+        });
+    }
+    attemptRegister();
 });
 server.data(onSocketData);
 
