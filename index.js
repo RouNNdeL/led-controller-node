@@ -8,7 +8,7 @@ const player = require('play-sound')(opts = {});
 
 let audio;
 let demo_playing;
-let sending = false;
+let sending = true;
 let action_buffer = [];
 
 log4js.configure({
@@ -17,7 +17,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "trace"}
+        default: {appenders: ["out", "file"], level: "warn"}
     }
 });
 const logger = log4js.getLogger();
@@ -106,9 +106,10 @@ function defaultCallback(buffer) {
         switch(buffer[0]) {
             case codes.UART_READY: {
                 logger.info("Device initialized, ready to accept instructions");
-                //playDemo(codes.START_DEMO_EFFECTS);
-                //sendProfile(1, effects.examples.effects["rainbow"]);
-                //sendGlobals(effects.examples.globals);
+                sending = false;
+                if(action_buffer.length > 0) {
+                    handleJson(action_buffer.pop());
+                }
                 break;
             }
             case codes.GLOBALS_UPDATED: {
