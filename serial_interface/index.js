@@ -15,6 +15,9 @@ const codes = {
 
     GLOBALS_UPDATED: 0xB0,
 
+    CSGO_BEGIN: 0xC0,
+    CSGO_NEW_STATE: 0xC1,
+
     START_DEMO_MUSIC: 0xD0,
     START_DEMO_EFFECTS: 0xD1,
     END_DEMO: 0xDF,

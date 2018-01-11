@@ -4,6 +4,7 @@ const codes = serial.codes;
 const log4js = require("log4js");
 const server = require("./network").receiver;
 const http = require("./network").http;
+const csgo = require("./csgo");
 const player = require('play-sound')(opts = {});
 
 let audio;
@@ -17,7 +18,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "warn"}
+        default: {appenders: ["out", "file"], level: "trace"}
     }
 });
 const logger = log4js.getLogger();
@@ -32,6 +33,7 @@ const port = serial.begin(function(e) {
 const REGISTER_MAX_RETRIES = 24;
 server.listen(() => {
     let tries = 0;
+
     function attemptRegister() {
         tries++;
         http.register(server.address().port, function(err, resp, content) {
@@ -45,9 +47,23 @@ server.listen(() => {
             }
         });
     }
+
     attemptRegister();
 });
 server.data(onSocketData);
+
+let previous_state;
+
+//TODO: Call handleJson with the data to support buffering
+csgo.server.start(function(d) {
+    const json = JSON.parse(d);
+    let bin = csgo.export.jsonToBin(json);
+    if(previous_state === undefined || !previous_state.every(function(u, i) {return u === bin[i];})) {
+        sendCsgo(bin);
+        logger.debug("New state!");
+        previous_state = bin;
+    }
+});
 
 let callback_stack = [];
 let length_stack = [];
@@ -241,6 +257,26 @@ function saveExplicit(callback) {
         callback = didReceive;
     }
     sendToPort([codes.SAVE_EXPLICIT], callback);
+}
+
+function sendCsgo(state, callback) {
+    if(sending) {
+        logger.warn("sendCsgo: Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
+    if(callback === undefined) {
+        callback = didReceive;
+    }
+    sendToPort([codes.CSGO_NEW_STATE], (err, data) => {
+        if(err !== null) {
+            logger.error(err);
+        } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
+            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
+        } else {
+            sendToPort(state, callback);
+        }
+    })
 }
 
 function didReceive(err, data) {
