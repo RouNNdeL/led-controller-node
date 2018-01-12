@@ -53,15 +53,30 @@ server.listen(() => {
 server.data(onSocketData);
 
 let previous_state;
+let csgo_timeout;
+let previous_enabled = false;
 
-//TODO: Call handleJson with the data to support buffering
 csgo.server.start(function(d) {
+    if(previous_enabled === false)
+        handleJson({type: "csgo_enabled", data: true});
+    previous_enabled = true;
+    clearTimeout(csgo_timeout);
+    csgo_timeout = setTimeout(() => {
+        previous_enabled = false;
+        handleJson({type: "csgo_enabled", data: false});
+    }, 2500);
     const json = JSON.parse(d);
-    let bin = csgo.export.jsonToBin(json);
-    if(previous_state === undefined || !previous_state.every(function(u, i) {return u === bin[i];})) {
-        sendCsgo(bin);
-        logger.debug("New state!");
-        previous_state = bin;
+    try {
+        let bin = csgo.export.jsonToBin(json);
+        if(previous_state === undefined || !previous_state.every(function(u, i) {
+                return u === bin[i];
+            })) {
+            handleJson({type: "csgo_new_state", data: bin});
+            previous_state = bin;
+        }
+    }
+    catch(e) {
+        logger.warn(e);
     }
 });
 
@@ -279,6 +294,18 @@ function sendCsgo(state, callback) {
     })
 }
 
+function sendCsgoEnabled(enabled, callback) {
+    if(sending) {
+        logger.warn("sendCsgo: Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
+    if(callback === undefined) {
+        callback = didReceive;
+    }
+    sendToPort([enabled ? codes.CSGO_BEGIN : codes.CSGO_END], callback);
+}
+
 function didReceive(err, data) {
     if(err !== null) {
         logger.error("didReceive:", err);
@@ -307,20 +334,35 @@ function handleJson(json) {
     if(sending) {
         action_buffer.unshift(json);
     } else {
-        if(json.type === "dialogflow") {
-            switch(json.data.result.action) {
-                case "start-demo": {
-                    playDemo(codes.START_DEMO_MUSIC);
+        switch(json.type) {
+            case "dialogflow": {
+                switch(json.data.result.action) {
+                    case "start-demo": {
+                        playDemo(codes.START_DEMO_MUSIC);
+                    }
                 }
+                break;
             }
-        }
-        else if(json.type === "globals_update") {
-            sendGlobals(json.data);
-        }
-        else if(json.type === "profile_update") {
-            sendProfile(json.options.n, {devices: json.data});
-        } else if(json.type === "save_explicit") {
-            saveExplicit();
+            case "globals_update": {
+                sendGlobals(json.data);
+                break;
+            }
+            case "profile_update": {
+                sendProfile(json.options.n, {devices: json.data});
+                break;
+            }
+            case "save_explicit": {
+                saveExplicit();
+                break;
+            }
+            case "csgo_enabled": {
+                sendCsgoEnabled(json.data);
+                break;
+            }
+            case "csgo_new_state": {
+                sendCsgo(json.data);
+                break;
+            }
         }
     }
 }
