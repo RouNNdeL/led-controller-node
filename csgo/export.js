@@ -1,16 +1,33 @@
 function jsonToBin(json) {
-    const array = new Uint8Array(3);
+    const array = new Uint8Array(4);
+    let index = 0;
 
-    array[0] = Math.ceil(json.player.state.health * 2.55);
-
-    let activeWeapon = getActiveWeapon(json.player.weapons);
-    if(activeWeapon === null || activeWeapon.ammo_clip === undefined || activeWeapon.ammo_clip_max === undefined) {
-        array[1] = 0;
+    //Health
+    if(json.player === undefined || json.player.state === undefined) {
+        array[index++] = 0;
     }
     else {
-        array[1] = (activeWeapon.ammo_clip / activeWeapon.ammo_clip_max) * 255;
+        array[index++] = Math.ceil(json.player.state.health * 2.55);
     }
-    array[2] = 0;
+
+    //Ammo
+    let activeWeapon = getActiveWeapon(json.player.weapons);
+    if(activeWeapon === null || activeWeapon.ammo_clip === undefined || activeWeapon.ammo_clip_max === undefined) {
+        array[index++] = 0;
+    }
+    else {
+        array[index++] = (activeWeapon.ammo_clip / activeWeapon.ammo_clip_max) * 255;
+    }
+
+    //Weapon slot
+    if(activeWeapon === null) {
+        array[index++] = 0;
+    } else {
+        array[index++] = getActiveWeaponSlot(activeWeapon);
+    }
+    
+    //Bomb timer
+    array[index++] = 0;
 
     return array;
 }
@@ -24,6 +41,23 @@ function getActiveWeapon(weapons) {
         }
     }
     return null;
+}
+
+function getActiveWeaponSlot(weapon) {
+    if(weapon.name === "weapon_taser")
+        return 3;
+    switch(weapon.type.toLowerCase()) {
+        case "c4":
+            return 5;
+        case "grenade":
+            return 4;
+        case "knife":
+            return 4;
+        case "pistol":
+            return 2;
+        default:
+            return 1;
+    }
 }
 
 module.exports.jsonToBin = jsonToBin;
