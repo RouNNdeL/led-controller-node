@@ -1,13 +1,15 @@
 function jsonToBin(json) {
-    const array = new Uint8Array(4);
+    const array = new Uint8Array(5);
     let index = 0;
 
-    //Health
+    //Health na flashed
     if(json.player === undefined || json.player.state === undefined) {
+        array[index++] = 0;
         array[index++] = 0;
     }
     else {
         array[index++] = Math.ceil(json.player.state.health * 2.55);
+        array[index++] = json.player.state.flashed;
     }
 
     //Ammo
@@ -25,7 +27,7 @@ function jsonToBin(json) {
     } else {
         array[index++] = getActiveWeaponSlot(activeWeapon);
     }
-    
+
     //Bomb timer
     array[index++] = 0;
 

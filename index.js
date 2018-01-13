@@ -18,7 +18,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "warn"}
+        default: {appenders: ["out", "file"], level: "debug"}
     }
 });
 const logger = log4js.getLogger();
@@ -57,6 +57,9 @@ let csgo_timeout;
 let previous_enabled = false;
 
 csgo.server.start(function(d) {
+    const json = JSON.parse(d);
+    if(json.player === undefined || json.player.activity === "menu")
+        return;
     if(previous_enabled === false)
         handleJson({type: "csgo_enabled", data: true});
     previous_enabled = true;
@@ -65,7 +68,6 @@ csgo.server.start(function(d) {
         previous_enabled = false;
         handleJson({type: "csgo_enabled", data: false});
     }, 2500);
-    const json = JSON.parse(d);
     try {
         let bin = csgo.export.jsonToBin(json);
         if(previous_state === undefined || !previous_state.every(function(u, i) {
