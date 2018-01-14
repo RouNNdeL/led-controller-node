@@ -8,7 +8,7 @@ function jsonToBin(json) {
         array[index++] = 0;
     }
     else {
-        array[index++] = Math.ceil(json.player.state.health * 2.55);
+        array[index++] = (json.player.state.health / 100) * 255;
         array[index++] = json.player.state.flashed;
     }
 
@@ -28,8 +28,9 @@ function jsonToBin(json) {
         array[index++] = getActiveWeaponSlot(activeWeapon);
     }
 
-    //Bomb timer
-    array[index++] = 0;
+    //Bomb state
+    array[index] = getBombState(json);
+
 
     return array;
 }
@@ -59,6 +60,22 @@ function getActiveWeaponSlot(weapon) {
             return 2;
         default:
             return 1;
+    }
+}
+
+function getBombState(json) {
+    if(json.round === undefined)
+        return 0;
+    switch(json.round.bomb)
+    {
+        case "planted":
+            return 1;
+        case "exploded":
+            return 2;
+        case "defused":
+            return 3;
+        default:
+            return 0;
     }
 }
 

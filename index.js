@@ -18,7 +18,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "debug"}
+        default: {appenders: ["out", "file"], level: "warn"}
     }
 });
 const logger = log4js.getLogger();
@@ -58,8 +58,13 @@ let previous_enabled = false;
 
 csgo.server.start(function(d) {
     const json = JSON.parse(d);
-    if(json.player === undefined || json.player.activity === "menu")
+    if((json.player === undefined || json.player.activity === "menu"))
+    {
+        if(previous_enabled)
+            handleJson({type: "csgo_enabled", data: false});
+        previous_enabled = false;
         return;
+    }
     if(previous_enabled === false)
         handleJson({type: "csgo_enabled", data: true});
     previous_enabled = true;
@@ -312,6 +317,7 @@ function didReceive(err, data) {
     if(err !== null) {
         logger.error("didReceive:", err);
     } else if(data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) {
+        sending = false;
         logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
     } else {
         sending = false;
