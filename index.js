@@ -201,7 +201,8 @@ function sendGlobals(globals, callback) {
         if(err !== null) {
             logger.error(err);
         } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
-            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
+            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            sending = false;
         } else {
             let bin = effects.export.globalsToBin(globals);
             sendToPort(bin, callback);
@@ -222,7 +223,8 @@ function sendTempDevice(n, device, callback) {
         if(err !== null) {
             logger.error(err);
         } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
-            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
+            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            sending = false;
         } else {
             sendToPort(effects.export.deviceToBin(0, n, device), callback);
         }
@@ -249,6 +251,7 @@ function sendProfile(n, profile, callback) {
             logger.error("sendSingle:", err);
         } else if((data === null || data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) && !override) {
             logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
+            sending = false;
         } else if(!override) {
             logger.trace("Device successfully received the data");
         }
@@ -256,7 +259,8 @@ function sendProfile(n, profile, callback) {
             if(err !== null && !override) {
                 logger.error("sendSingle:", err);
             } else if((data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) && !override) {
-                logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
+                logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+                sending = false;
             } else {
                 let c = current + 1 < devices ? sendSingle : callback;
                 sendToPort(effects.export.deviceToBin(n, current, profile.devices[current]), c);
@@ -294,7 +298,8 @@ function sendCsgo(state, callback) {
         if(err !== null) {
             logger.error(err);
         } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
-            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data)
+            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            sending = false;
         } else {
             sendToPort(state, callback);
         }
