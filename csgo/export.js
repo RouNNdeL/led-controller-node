@@ -31,11 +31,18 @@ function jsonToBin(json) {
     //Bomb state
     array[index++] = getBombState(json);
 
-    //Round win
-    if(json.round === undefined || json.round.win_team === undefined)
-        array[index] = 0;
+    //Round state
+    if(json.round !== undefined)
+    {
+        if(json.round.win_team !== undefined)
+            array[index++] = json.round.win_team === "T" ? 1 : 2;
+        else if(json.round.phase !== undefined && json.round.phase === "freezetime")
+            array[index++] = 3;
+    }
     else
-        array[index] = json.round.win_team === "T" ? 1 : 2;
+    {
+        array[index++] = 0;
+    }
 
     return array;
 }
