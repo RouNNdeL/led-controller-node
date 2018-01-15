@@ -1,5 +1,5 @@
 function jsonToBin(json) {
-    const array = new Uint8Array(5);
+    const array = new Uint8Array(6);
     let index = 0;
 
     //Health na flashed
@@ -29,8 +29,13 @@ function jsonToBin(json) {
     }
 
     //Bomb state
-    array[index] = getBombState(json);
+    array[index++] = getBombState(json);
 
+    //Round win
+    if(json.round === undefined || json.round.win_team === undefined)
+        array[index] = 0;
+    else
+        array[index] = json.round.win_team === "T" ? 1 : 2;
 
     return array;
 }
