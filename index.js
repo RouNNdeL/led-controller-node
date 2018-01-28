@@ -56,9 +56,11 @@ server.data(onSocketData);
 let previous_state;
 let csgo_timeout;
 let previous_enabled = false;
+let previous_globals_enabled = false;
 
 csgo.server.start(function(d) {
-    if(globals.csgo_enabled) {
+    if(globals !== undefined && globals.csgo_enabled) {
+        previous_globals_enabled = true;
         const json = JSON.parse(d);
         if((json.player === undefined || json.player.activity === "menu")) {
             if(previous_enabled)
@@ -86,6 +88,10 @@ csgo.server.start(function(d) {
         catch(e) {
             logger.warn(e);
         }
+    } else if(previous_globals_enabled && globals.csgo_enabled === false) {
+        previous_globals_enabled = false;
+        previous_enabled = false;
+        handleJson({type: "csgo_enabled", data: false});
     }
 });
 
