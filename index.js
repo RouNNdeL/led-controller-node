@@ -7,6 +7,7 @@ const http = require("./network").http;
 const csgo = require("./csgo");
 const player = require('play-sound')(opts = {});
 
+let globals;
 let audio;
 let demo_playing;
 let sending = true;
@@ -57,33 +58,34 @@ let csgo_timeout;
 let previous_enabled = false;
 
 csgo.server.start(function(d) {
-    const json = JSON.parse(d);
-    if((json.player === undefined || json.player.activity === "menu"))
-    {
-        if(previous_enabled)
-            handleJson({type: "csgo_enabled", data: false});
-        previous_enabled = false;
-        return;
-    }
-    if(previous_enabled === false)
-        handleJson({type: "csgo_enabled", data: true});
-    previous_enabled = true;
-    clearTimeout(csgo_timeout);
-    csgo_timeout = setTimeout(() => {
-        previous_enabled = false;
-        handleJson({type: "csgo_enabled", data: false});
-    }, 2500);
-    try {
-        let bin = csgo.export.jsonToBin(json);
-        if(previous_state === undefined || !previous_state.every(function(u, i) {
-                return u === bin[i];
-            })) {
-            handleJson({type: "csgo_new_state", data: bin});
-            previous_state = bin;
+    if(globals.csgo_enabled) {
+        const json = JSON.parse(d);
+        if((json.player === undefined || json.player.activity === "menu")) {
+            if(previous_enabled)
+                handleJson({type: "csgo_enabled", data: false});
+            previous_enabled = false;
+            return;
         }
-    }
-    catch(e) {
-        logger.warn(e);
+        if(previous_enabled === false)
+            handleJson({type: "csgo_enabled", data: true});
+        previous_enabled = true;
+        clearTimeout(csgo_timeout);
+        csgo_timeout = setTimeout(() => {
+            previous_enabled = false;
+            handleJson({type: "csgo_enabled", data: false});
+        }, 2500);
+        try {
+            let bin = csgo.export.jsonToBin(json);
+            if(previous_state === undefined || !previous_state.every(function(u, i) {
+                    return u === bin[i];
+                })) {
+                handleJson({type: "csgo_new_state", data: bin});
+                previous_state = bin;
+            }
+        }
+        catch(e) {
+            logger.warn(e);
+        }
     }
 });
 
@@ -358,6 +360,7 @@ function handleJson(json) {
             }
             case "globals_update": {
                 sendGlobals(json.data);
+                globals = json.data;
                 break;
             }
             case "profile_update": {
