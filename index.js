@@ -130,7 +130,7 @@ function handleBuffer(b) {
 port.on("data", handleBuffer);
 
 function sendToPort(data, length, callback) {
-    logger.debug("Sending "+data.length+" bytes of data");
+    logger.debug("Sending "+data.length+" bytes of data", data);
     if(typeof length === "function") {
         callback = length;
         length = 1;
@@ -253,7 +253,6 @@ function sendProfile(n, profile, callback) {
         logger.warn("sendProfile: Device is not done processing or receiving the data");
         return;
     }
-    sending = true;
     if(callback === undefined) {
         callback = didReceive;
     }
@@ -284,7 +283,43 @@ function sendProfile(n, profile, callback) {
         });
     }
 
-    sendSingle(null, null, true);
+    sendProfileFlags(n, profile.flags, (err, data) => {
+        if(err !== null) {
+            logger.error("sendProfile:", err);
+        } else if(data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) {
+            sending = false;
+            logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
+        } else {
+            sending = false;
+            if(action_buffer.length > 0) {
+                handleJson(action_buffer.pop());
+            }
+            logger.trace("Device successfully received the data");
+            sending = true;
+            sendSingle(null, null, true);
+        }
+    });
+}
+
+function sendProfileFlags(n, flags, callback) {
+    if(sending) {
+        logger.warn("sendProfileFlags: Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
+    if(callback === undefined) {
+        callback = didReceive;
+    }
+    sendToPort([codes.SAVE_PROFILE_FLAGS], (err, data) => {
+        if(err !== null) {
+            logger.error(err);
+        } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
+            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            sending = false;
+        } else {
+            sendToPort(new Uint8Array([n, flags]), callback);
+        }
+    });
 }
 
 function saveExplicit(callback) {
@@ -376,7 +411,11 @@ function handleJson(json) {
                 break;
             }
             case "profile_update": {
-                sendProfile(json.options.n, {devices: json.data});
+                sendProfile(json.options.n, json.data);
+                break;
+            }
+            case "profile_flags": {
+                sendProfileFlags(json.options.n, json.data);
                 break;
             }
             case "save_explicit": {
