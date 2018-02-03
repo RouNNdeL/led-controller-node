@@ -1,7 +1,7 @@
 const examples = require("./examples");
 
 function profileToBin(effect) {
-    const array = new Uint8Array(62 * 6);
+    const array = new Uint8Array(62 * 6 + 1);
 
     for(let i = 0; i < effect.devices.length; i++) {
         let index = 62 * i;
@@ -25,6 +25,8 @@ function profileToBin(effect) {
             array[index++] = color;
         }
     }
+
+    array[62*6] = effect.flags;
 
     return array;
 }

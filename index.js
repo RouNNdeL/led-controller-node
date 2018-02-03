@@ -43,6 +43,11 @@ server.listen(() => {
                 logger.warn(err);
                 if(tries < REGISTER_MAX_RETRIES)
                     attemptRegister();
+                else
+                {
+                    logger.fatal("Failed to register TCP server, master might be offline");
+                    process.exit(0xE1);
+                }
             } else {
                 logger.info("Successfully register the TCP server");
             }
@@ -125,6 +130,7 @@ function handleBuffer(b) {
 port.on("data", handleBuffer);
 
 function sendToPort(data, length, callback) {
+    logger.debug("Sending "+data.length+" bytes of data");
     if(typeof length === "function") {
         callback = length;
         length = 1;
