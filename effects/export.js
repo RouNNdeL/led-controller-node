@@ -64,10 +64,12 @@ function deviceToBin(profile_n, device_n, device) {
 }
 
 function globalsToBin(globals) {
-    const array = new Uint8Array(17);
+    const array = new Uint8Array(22);
     let index = 0;
 
-    array[index++] = globals.brightness;
+    for(let i = 0; i < 6; i++) {
+        array[index++] = globals.brightness[i] / 100 * 255;
+    }
     array[index++] = globals.profile_count;
     array[index++] = globals.current_profile;
     array[index++] = globals.leds_enabled ? 1 : 0;
@@ -88,7 +90,11 @@ function binToGlobals(buffer) {
     let index = 0;
     let globals = {};
 
-    globals.brightness = buffer[index++];
+    globals.brightness = [];
+
+    for(let i = 0; i < 6; i++) {
+        globals.brightness[i] = buffer[index++]/255*100;
+    }
     globals.profile_count = buffer[index++];
     globals.current_profile = buffer[index++];
     globals.leds_enabled = !!buffer[index++];

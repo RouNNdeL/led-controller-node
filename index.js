@@ -19,7 +19,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "warn"}
+        default: {appenders: ["out", "file"], level: "trace"}
     }
 });
 const logger = log4js.getLogger();
@@ -130,7 +130,7 @@ function handleBuffer(b) {
 port.on("data", handleBuffer);
 
 function sendToPort(data, length, callback) {
-    logger.debug("Sending "+data.length+" bytes of data", data);
+    logger.debug("Sending "+data.length+" bytes of data");
     if(typeof length === "function") {
         callback = length;
         length = 1;
@@ -165,7 +165,7 @@ function defaultCallback(buffer) {
                 break;
             }
             case codes.GLOBALS_UPDATED: {
-                sendToPort([codes.SEND_GLOBALS], 17, newGlobals);
+                sendToPort([codes.SEND_GLOBALS], 22, newGlobals);
                 break;
             }
             case codes.END_DEMO: {
@@ -215,7 +215,7 @@ function sendGlobals(globals, callback) {
         if(err !== null) {
             logger.error(err);
         } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
-            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            logger.error("sendGlobals: Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
             sending = false;
         } else {
             let bin = effects.export.globalsToBin(globals);
@@ -237,7 +237,7 @@ function sendTempDevice(n, device, callback) {
         if(err !== null) {
             logger.error(err);
         } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
-            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            logger.error("sendTempDevice: Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
             sending = false;
         } else {
             sendToPort(effects.export.deviceToBin(0, n, device), callback);
@@ -263,16 +263,16 @@ function sendProfile(n, profile, callback) {
         if(err !== null) {
             logger.error("sendSingle:", err);
         } else if((data === null || data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) && !override) {
-            logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
+            logger.error("sendSingle: Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
             sending = false;
         } else if(!override) {
-            logger.trace("Device successfully received the data");
+            logger.trace("sendSingle: Device successfully received the data");
         }
         sendToPort([codes.SAVE_PROFILE], (err, data) => {
             if(err !== null && !override) {
                 logger.error("sendSingle:", err);
             } else if((data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) && !override) {
-                logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+                logger.error("sendSingle: Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
                 sending = false;
             } else {
                 let c = current + 1 < devices ? sendSingle : callback;
@@ -288,13 +288,13 @@ function sendProfile(n, profile, callback) {
             logger.error("sendProfile:", err);
         } else if(data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) {
             sending = false;
-            logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
+            logger.error("sendProfile: Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
         } else {
             sending = false;
             if(action_buffer.length > 0) {
                 handleJson(action_buffer.pop());
             }
-            logger.trace("Device successfully received the data");
+            logger.trace("sendProfile: Device successfully received the data");
             sending = true;
             sendSingle(null, null, true);
         }
@@ -314,7 +314,7 @@ function sendProfileFlags(n, flags, callback) {
         if(err !== null) {
             logger.error(err);
         } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
-            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            logger.error("sendProfileFlags: Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
             sending = false;
         } else {
             sendToPort(new Uint8Array([n, flags]), callback);
@@ -324,7 +324,7 @@ function sendProfileFlags(n, flags, callback) {
 
 function saveExplicit(callback) {
     if(sending) {
-        logger.warn("sendTempDevice: Device is not done processing or receiving the data");
+        logger.warn("saveExplicit: Device is not done processing or receiving the data");
         return;
     }
     sending = true;
@@ -347,7 +347,7 @@ function sendCsgo(state, callback) {
         if(err !== null) {
             logger.error(err);
         } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
-            logger.error("Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            logger.error("sendCsgo: Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
             sending = false;
         } else {
             sendToPort(state, callback);
@@ -372,13 +372,13 @@ function didReceive(err, data) {
         logger.error("didReceive:", err);
     } else if(data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) {
         sending = false;
-        logger.error("Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
+        logger.error("didReceive: Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
     } else {
         sending = false;
         if(action_buffer.length > 0) {
             handleJson(action_buffer.pop());
         }
-        logger.trace("Device successfully received the data");
+        logger.trace("didReceive: Device successfully received the data");
     }
 }
 
@@ -394,6 +394,7 @@ function onSocketData(buffer) {
 function handleJson(json) {
     logger.trace(json);
     if(sending) {
+        logger.debug("Device busy, buffering");
         action_buffer.unshift(json);
     } else {
         switch(json.type) {
