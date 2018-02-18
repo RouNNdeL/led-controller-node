@@ -19,7 +19,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "trace"}
+        default: {appenders: ["out", "file"], level: "warn"}
     }
 });
 const logger = log4js.getLogger();
@@ -130,7 +130,7 @@ function handleBuffer(b) {
 port.on("data", handleBuffer);
 
 function sendToPort(data, length, callback) {
-    logger.debug("Sending "+data.length+" bytes of data");
+    logger.debug("Sending "+data.length+" bytes of data", data.length < 25 ? data :"<data too long>");
     if(typeof length === "function") {
         callback = length;
         length = 1;
@@ -285,17 +285,12 @@ function sendProfile(n, profile, callback) {
 
     sendProfileFlags(n, profile.flags, (err, data) => {
         if(err !== null) {
-            logger.error("sendProfile:", err);
+            logger.error("sendProfile: flags:", err);
         } else if(data.length > 1 || data[0] !== codes.RECEIVE_SUCCESS) {
             sending = false;
-            logger.error("sendProfile: Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
+            logger.error("sendProfile: flags: Invalid response, expected RECEIVE_SUCCESS (0xA1) got: ", data);
         } else {
-            sending = false;
-            if(action_buffer.length > 0) {
-                handleJson(action_buffer.pop());
-            }
-            logger.trace("sendProfile: Device successfully received the data");
-            sending = true;
+            logger.trace("sendProfile: flags: Device successfully received the data");
             sendSingle(null, null, true);
         }
     });
