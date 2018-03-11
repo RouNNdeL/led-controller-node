@@ -19,7 +19,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "warn"}
+        default: {appenders: ["out", "file"], level: "trace"}
     }
 });
 const logger = log4js.getLogger();
@@ -347,7 +347,7 @@ function sendCsgo(state, callback) {
         } else {
             sendToPort(state, callback);
         }
-    })
+    });
 }
 
 function sendCsgoEnabled(enabled, callback) {
@@ -360,6 +360,33 @@ function sendCsgoEnabled(enabled, callback) {
         callback = didReceive;
     }
     sendToPort([enabled ? codes.CSGO_BEGIN : codes.CSGO_END], callback);
+}
+
+function sendFrame(frame, callback) {
+    if(sending) {
+        logger.warn("sendFrame: Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
+    if(callback === undefined) {
+        callback = didReceive;
+    }
+    sendToPort([codes.FRAME_JUMP], (err, data) => {
+        if(err !== null) {
+            logger.error(err);
+        } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
+            logger.error("sendFrame: Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            sending = false;
+        } else {
+            const frame32 = new Uint8Array(4);
+            frame32[0] = frame >> 0;
+            frame32[1] = frame >> 8;
+            frame32[2] = frame >> 16;
+            frame32[3] = frame >> 24;
+            logger.debug(frame32);
+            sendToPort(frame32, callback);
+        }
+    });
 }
 
 function didReceive(err, data) {
@@ -425,6 +452,15 @@ function handleJson(json) {
             case "csgo_new_state": {
                 sendCsgo(json.data);
                 break;
+            }
+            case "jump_frame":
+            {
+                sendFrame(json.data);
+                break;
+            }
+            default:
+            {
+                logger.warn("Unknown json type:", json)
             }
         }
     }

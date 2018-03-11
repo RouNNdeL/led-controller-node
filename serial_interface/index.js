@@ -6,6 +6,7 @@ const codes = {
     TEMP_DEVICE: 0x12,
     SAVE_EXPLICIT: 0x13,
     SAVE_PROFILE_FLAGS: 0x14,
+    FRAME_JUMP: 0x15,
 
     SEND_GLOBALS: 0x20,
     SEND_PROFILE: 0x21,

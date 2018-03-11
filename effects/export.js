@@ -55,9 +55,16 @@ function deviceToBin(profile_n, device_n, device) {
             color = 0;
         else
             color = parseInt(device.colors[j].replace(/(^|#)/, "0x"));
-        array[index++] = (color >> 16) * brightness;
-        array[index++] = (color >> 8) * brightness;
-        array[index++] = color * brightness;
+        if(device_n > 1) {
+            array[index++] = (color >> 8) * brightness;
+            array[index++] = (color >> 16) * brightness;
+            array[index++] = color * brightness;
+        }
+        else {
+            array[index++] = (color >> 16) * brightness;
+            array[index++] = (color >> 8) * brightness;
+            array[index++] = color * brightness;
+        }
     }
 
     return array;
@@ -93,7 +100,7 @@ function binToGlobals(buffer) {
     globals.brightness = [];
 
     for(let i = 0; i < 6; i++) {
-        globals.brightness[i] = buffer[index++]/255*100;
+        globals.brightness[i] = buffer[index++] / 255 * 100;
     }
     globals.profile_count = buffer[index++];
     globals.current_profile = buffer[index++];
