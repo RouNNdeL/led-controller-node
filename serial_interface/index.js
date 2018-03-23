@@ -26,7 +26,13 @@ const codes = {
     END_DEMO: 0xDF,
 
     UNRECOGNIZED_COMMAND: 0xE0,
-    BUFFER_OVERFLOW: 0xE1
+    BUFFER_OVERFLOW: 0xE1,
+
+    DEBUG_PAUSE: 0xF0,
+    DEBUG_RESUME: 0xF1,
+    DEBUG_SET_FRAME: 0xF2,
+    DEBUG_GET_FRAME: 0xF3,
+    DEBUG_INCREMENT_FRAME: 0xF4
 };
 
 module.exports = interface;

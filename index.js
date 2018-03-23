@@ -19,7 +19,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "trace"}
+        default: {appenders: ["out", "file"], level: "warn"}
     }
 });
 const logger = log4js.getLogger();
@@ -352,7 +352,7 @@ function sendCsgo(state, callback) {
 
 function sendCsgoEnabled(enabled, callback) {
     if(sending) {
-        logger.warn("sendCsgo: Device is not done processing or receiving the data");
+        logger.warn("sendCsgoEnabled: Device is not done processing or receiving the data");
         return;
     }
     sending = true;
@@ -389,6 +389,45 @@ function sendFrame(frame, callback) {
     });
 }
 
+function sendFrameIncrement(increment, callback) {
+    if(sending) {
+        logger.warn("sendFrameIncrement: Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
+    if(callback === undefined) {
+        callback = didReceive;
+    }
+    sendToPort([codes.DEBUG_INCREMENT_FRAME], (err, data) => {
+        if(err !== null) {
+            logger.error(err);
+        } else if(data.length > 1 || data[0] !== codes.READY_TO_RECEIVE) {
+            logger.error("sendFrameIncrement: Invalid response, expected READY_TO_RECEIVE (0xA0) got: ", data);
+            sending = false;
+        } else {
+            const increment32 = new Uint8Array(4);
+            increment32[0] = increment >> 0;
+            increment32[1] = increment >> 8;
+            increment32[2] = increment >> 16;
+            increment32[3] = increment >> 24;
+            logger.debug(increment32);
+            sendToPort(increment32, callback);
+        }
+    });
+}
+
+function sendDebugPaused(paused, callback) {
+    if(sending) {
+        logger.warn("sendDebugPaused: Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
+    if(callback === undefined) {
+        callback = didReceive;
+    }
+    sendToPort([paused ? codes.DEBUG_PAUSE : codes.DEBUG_RESUME], callback);
+}
+
 function didReceive(err, data) {
     if(err !== null) {
         logger.error("didReceive:", err);
@@ -416,7 +455,7 @@ function onSocketData(buffer) {
 function handleJson(json) {
     logger.trace(json);
     if(sending) {
-        logger.debug("Device busy, buffering");
+        logger.trace("Device busy, buffering");
         action_buffer.unshift(json);
     } else {
         switch(json.type) {
@@ -458,9 +497,19 @@ function handleJson(json) {
                 sendFrame(json.data);
                 break;
             }
+            case "debug_pause":
+            {
+                sendDebugPaused(json.data);
+                break;
+            }
+            case "debug_increment_frame":
+            {
+                sendFrameIncrement(json.data);
+                break;
+            }
             default:
             {
-                logger.warn("Unknown json type:", json)
+                logger.warn("Unknown json type: "+json.type)
             }
         }
     }
