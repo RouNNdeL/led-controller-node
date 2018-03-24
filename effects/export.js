@@ -33,8 +33,6 @@ function deviceToBin(profile_n, device_n, device) {
     const array = new Uint8Array(64);
     let index = 0;
 
-    let brightness = device.brightness === undefined ? 1 : device.brightness / 100;
-
     array[index++] = profile_n;
     array[index++] = device_n;
 
@@ -56,14 +54,14 @@ function deviceToBin(profile_n, device_n, device) {
         else
             color = parseInt(device.colors[j].replace(/(^|#)/, "0x"));
         if(device_n > 1) {
-            array[index++] = (color >> 8) * brightness;
-            array[index++] = (color >> 16) * brightness;
-            array[index++] = color * brightness;
+            array[index++] = (color >> 8);
+            array[index++] = (color >> 16);
+            array[index++] = color;
         }
         else {
-            array[index++] = (color >> 16) * brightness;
-            array[index++] = (color >> 8) * brightness;
-            array[index++] = color * brightness;
+            array[index++] = (color >> 16);
+            array[index++] = (color >> 8);
+            array[index++] = color;
         }
     }
 
@@ -120,8 +118,27 @@ function binToGlobals(buffer) {
     return globals;
 }
 
+function binToDebugInfo(buffer) {
+    let info = {};
+    info.frame = buffer[0] << 0 | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24;
+    info.flag_new_frame = (buffer[4] & (1 << 0)) > 0;
+    info.flag_button =(buffer[4] & (1 << 1)) > 0;
+    info.flag_reset = (buffer[4] & (1 << 2)) > 0;
+    info.flag_profile_updated = (buffer[4] & (1 << 3)) > 0;
+    info.flag_csgo_enabled = (buffer[4] & (1 << 4)) > 0;
+    info.flag_debug_enabled = (buffer[4] & (1 << 5)) > 0;
+    info.debug_buffer = [];
+    for(let i = 5; i < buffer.length; i++)
+    {
+        info.debug_buffer.push(buffer[i]);
+    }
+
+    return info;
+}
+
 module.exports.profileToBin = profileToBin;
 module.exports.deviceToBin = deviceToBin;
 module.exports.globalsToBin = globalsToBin;
 
 module.exports.binToGlobals = binToGlobals;
+module.exports.binToDebugInfo = binToDebugInfo;

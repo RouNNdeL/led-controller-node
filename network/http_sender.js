@@ -22,5 +22,14 @@ function sendGlobals(data, callback) {
     }, callback);
 }
 
+function sendDebugInfo(data, callback) {
+    request("http://led/api/debug/info", {
+        method: "POST",
+        body: data,
+        json: true
+    }, callback);
+}
+
 module.exports.sendGlobals = sendGlobals;
+module.exports.sendDebugInfo = sendDebugInfo;
 module.exports.register = register;

@@ -19,7 +19,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "warn"}
+        default: {appenders: ["out", "file"], level: "trace"}
     }
 });
 const logger = log4js.getLogger();
@@ -165,7 +165,11 @@ function defaultCallback(buffer) {
                 break;
             }
             case codes.GLOBALS_UPDATED: {
-                sendToPort([codes.SEND_GLOBALS], 22, newGlobals);
+                sendToPort([codes.SEND_GLOBALS], 22, receiveGlobals);
+                break;
+            }
+            case codes.DEBUG_NEW_INFO: {
+                sendToPort([codes.DEBUG_SEND_INFO], 21, receiveDebugInfo);
                 break;
             }
             case codes.END_DEMO: {
@@ -185,7 +189,7 @@ function defaultCallback(buffer) {
     }
 }
 
-function newGlobals(err, buffer) {
+function receiveGlobals(err, buffer) {
     if(err === null) {
         logger.info("Got new globals");
         let globals = effects.export.binToGlobals(buffer);
@@ -425,7 +429,21 @@ function sendDebugPaused(paused, callback) {
     if(callback === undefined) {
         callback = didReceive;
     }
-    sendToPort([paused ? codes.DEBUG_PAUSE : codes.DEBUG_RESUME], callback);
+    sendToPort([paused ? codes.DEBUG_START : codes.DEBUG_STOP], callback);
+}
+
+function receiveDebugInfo(err, buffer) {
+    if(err === null) {
+        logger.debug("Got debug info");
+        let info = effects.export.binToDebugInfo(buffer);
+        logger.debug(info);
+        http.sendDebugInfo(info, (err, resp, content) => {
+            if(err !== null) logger.error(err);
+            else logger.trace(content);
+        });
+    } else {
+        logger.error(err);
+    }
 }
 
 function didReceive(err, data) {
