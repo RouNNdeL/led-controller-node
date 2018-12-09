@@ -2,12 +2,13 @@ const request = require("request");
 const fs = require("fs");
 const token = JSON.parse(fs.readFileSync(__dirname + "/../secure.json")).checkin_token;
 
-function register(port, callback) {
-    request("http://led/network/checkin.php", {
-        method: "GET",
-        qs: {
-            token: token,
-            port: port.toString()
+function register(hostname, port, callback) {
+    request("https://home.zdul.xyz/api/device_conn_update.php", {
+        method: "POST",
+        json:{
+            device_id: "pc",
+            device_hostname: hostname,
+            device_port: port
         },
         timeout: 2500
     }, callback);

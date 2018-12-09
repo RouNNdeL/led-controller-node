@@ -19,7 +19,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "trace"}
+        default: {appenders: ["out", "file"], level: "info"}
     }
 });
 const logger = log4js.getLogger();
@@ -37,14 +37,14 @@ server.listen(() => {
 
     function attemptRegister() {
         tries++;
-        http.register(server.address().port, function(err, resp, content) {
-            if(err !== null) {
+        let address = server.address();
+        http.register(address.address, address.port, function(err, resp, content) {
+            if(err !== null || content === undefined || content.status !== "success") {
                 logger.error("Failed to register, attempt", tries);
-                logger.warn(err);
+                logger.warn(err || content && content.status);
                 if(tries < REGISTER_MAX_RETRIES)
                     attemptRegister();
-                else
-                {
+                else {
                     logger.fatal("Failed to register TCP server, master might be offline");
                     process.exit(0xE1);
                 }
@@ -84,8 +84,8 @@ csgo.server.start(function(d) {
         try {
             let bin = csgo.export.jsonToBin(json);
             if(previous_state === undefined || !previous_state.every(function(u, i) {
-                    return u === bin[i];
-                })) {
+                return u === bin[i];
+            })) {
                 handleJson({type: "csgo_new_state", data: bin});
                 previous_state = bin;
             }
@@ -120,7 +120,7 @@ function handleBuffer(b) {
             handleBuffer(buffer.slice(expected_length));
             buffer = new Buffer([]);
         } else {
-            logger.debug("Buffer not long enough, expected: " + expected_length + ", got: " + buffer.length);
+            logger.trace("Buffer not long enough, expected: " + expected_length + ", got: " + buffer.length);
         }
     } else {
         defaultCallback(b)
@@ -130,7 +130,7 @@ function handleBuffer(b) {
 port.on("data", handleBuffer);
 
 function sendToPort(data, length, callback) {
-    logger.debug("Sending "+data.length+" bytes of data", data.length < 25 ? data :"<data too long>");
+    logger.trace("Sending " + data.length + " bytes of data", data.length < 25 ? data : "[<data too long>]");
     if(typeof length === "function") {
         callback = length;
         length = 1;
@@ -165,11 +165,11 @@ function defaultCallback(buffer) {
                 break;
             }
             case codes.GLOBALS_UPDATED: {
-                sendToPort([codes.SEND_GLOBALS], 22, receiveGlobals);
+                sendToPort([codes.SEND_GLOBALS], 99, receiveGlobals);
                 break;
             }
             case codes.DEBUG_NEW_INFO: {
-                sendToPort([codes.DEBUG_SEND_INFO], 21, receiveDebugInfo);
+                sendToPort([codes.DEBUG_SEND_INFO], 26 + 5, receiveDebugInfo);
                 break;
             }
             case codes.END_DEMO: {
@@ -191,7 +191,7 @@ function defaultCallback(buffer) {
 
 function receiveGlobals(err, buffer) {
     if(err === null) {
-        logger.info("Got new globals");
+        logger.trace("Got new globals");
         let globals = effects.export.binToGlobals(buffer);
         http.sendGlobals({
             current_profile: globals.current_profile,
@@ -200,7 +200,7 @@ function receiveGlobals(err, buffer) {
             if(err !== null) logger.error(err);
             else logger.trace(content);
         });
-        logger.trace(globals);
+        logger.debug("globals:", globals);
     } else {
         logger.error(err);
     }
@@ -387,7 +387,6 @@ function sendFrame(frame, callback) {
             frame32[1] = frame >> 8;
             frame32[2] = frame >> 16;
             frame32[3] = frame >> 24;
-            logger.debug(frame32);
             sendToPort(frame32, callback);
         }
     });
@@ -414,7 +413,6 @@ function sendFrameIncrement(increment, callback) {
             increment32[1] = increment >> 8;
             increment32[2] = increment >> 16;
             increment32[3] = increment >> 24;
-            logger.debug(increment32);
             sendToPort(increment32, callback);
         }
     });
@@ -434,12 +432,12 @@ function sendDebugPaused(paused, callback) {
 
 function receiveDebugInfo(err, buffer) {
     if(err === null) {
-        logger.debug("Got debug info");
+        logger.trace("Got debug info");
         let info = effects.export.binToDebugInfo(buffer);
-        logger.debug(info);
+        logger.debug("debug_info:", info);
         http.sendDebugInfo(info, (err, resp, content) => {
             if(err !== null) logger.error(err);
-            else logger.trace(content);
+            else logger.debug("http.sendDebugInfo:", content);
         });
     } else {
         logger.error(err);
@@ -457,6 +455,9 @@ function didReceive(err, data) {
         if(action_buffer.length > 0) {
             handleJson(action_buffer.pop());
         }
+        else{
+            logger.info("[REQUEST QUE] Que empty")
+        }
         logger.trace("didReceive: Device successfully received the data");
     }
 }
@@ -471,10 +472,11 @@ function onSocketData(buffer) {
 }
 
 function handleJson(json) {
-    logger.trace(json);
+    logger.debug("handleJson:", json);
     if(sending) {
         logger.trace("Device busy, buffering");
         action_buffer.unshift(json);
+        logger.info("[REQUEST QUE] Que size", action_buffer.length);
     } else {
         switch(json.type) {
             case "dialogflow": {
@@ -510,24 +512,20 @@ function handleJson(json) {
                 sendCsgo(json.data);
                 break;
             }
-            case "jump_frame":
-            {
+            case "jump_frame": {
                 sendFrame(json.data);
                 break;
             }
-            case "debug_pause":
-            {
+            case "debug_pause": {
                 sendDebugPaused(json.data);
                 break;
             }
-            case "debug_increment_frame":
-            {
+            case "debug_increment_frame": {
                 sendFrameIncrement(json.data);
                 break;
             }
-            default:
-            {
-                logger.warn("Unknown json type: "+json.type)
+            default: {
+                logger.warn("Unknown json type: " + json.type)
             }
         }
     }
