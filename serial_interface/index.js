@@ -7,6 +7,7 @@ const codes = {
     SAVE_EXPLICIT: 0x13,
     SAVE_PROFILE_FLAGS: 0x14,
     FRAME_JUMP: 0x15,
+    QUICK_SAVE: 0x16,
 
     SEND_GLOBALS: 0x20,
     SEND_PROFILE: 0x21,

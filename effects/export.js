@@ -1,4 +1,5 @@
 const examples = require("./examples");
+const codes = require("../serial_interface").codes;
 
 function profileToBin(effect) {
     const array = new Uint8Array(62 * 6);
@@ -152,6 +153,25 @@ function binToGlobals(buffer) {
     return globals;
 }
 
+function quickGlobalsToBin(globals) {
+    const array = new Uint8Array(31);
+    let index = 0;
+
+    array[index++] = codes.QUICK_SAVE;
+
+    for(let i = 0; i < 6; i++) {
+        array[index++] = globals.flags[i];
+        array[index++] = globals.brightness[i] / 100 * 255;
+
+        let color = globals.color[i];
+        array[index++] = (color >> 16);
+        array[index++] = (color >> 8);
+        array[index++] = color;
+    }
+
+    return array;
+}
+
 function binToDebugInfo(buffer) {
     let info = {};
     info.frame = buffer[0] << 0 | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24;
@@ -172,6 +192,7 @@ function binToDebugInfo(buffer) {
 module.exports.profileToBin = profileToBin;
 module.exports.deviceToBin = deviceToBin;
 module.exports.globalsToBin = globalsToBin;
+module.exports.quickGlobalsToBin = quickGlobalsToBin;
 
 module.exports.binToGlobals = binToGlobals;
 module.exports.binToDebugInfo = binToDebugInfo;

@@ -19,7 +19,7 @@ log4js.configure({
         file: {type: "file", filename: "app.log"}
     },
     categories: {
-        default: {appenders: ["out", "file"], level: "info"}
+        default: {appenders: ["out", "file"], level: "debug"}
     }
 });
 const logger = log4js.getLogger();
@@ -366,6 +366,18 @@ function sendCsgoEnabled(enabled, callback) {
     sendToPort([enabled ? codes.CSGO_BEGIN : codes.CSGO_END], callback);
 }
 
+function sendQuickGlobals(globals, callback) {
+    if(sending) {
+        logger.warn("sendQuickGlobals: Device is not done processing or receiving the data");
+        return;
+    }
+    sending = true;
+    if(callback === undefined) {
+        callback = didReceive;
+    }
+    sendToPort(effects.export.quickGlobalsToBin(globals), callback);
+}
+
 function sendFrame(frame, callback) {
     if(sending) {
         logger.warn("sendFrame: Device is not done processing or receiving the data");
@@ -489,6 +501,11 @@ function handleJson(json) {
             }
             case "globals_update": {
                 sendGlobals(json.data);
+                globals = json.data;
+                break;
+            }
+            case "quick_globals": {
+                sendQuickGlobals(json.data);
                 globals = json.data;
                 break;
             }
